@@ -20,7 +20,9 @@ Usage:
 """
 from __future__ import annotations
 
+import functools
 import logging
+import re
 import sys
 import threading
 
@@ -28,6 +30,8 @@ from logging.config import ConvertingDict, ConvertingList, ConvertingTuple
 from typing import Any, cast
 
 import rollbar
+
+_replace_ansi_color_escapes = functools.partial(re.compile(r'\x1b\[[\d;]*m').sub, '')
 
 
 def check_level(level: str | int) -> int:
@@ -153,6 +157,8 @@ class RollbarHandler(logging.Handler):
         payload_data = getattr(record, 'payload_data', {})
 
         self._add_history(record, payload_data)
+        if isinstance(record.stack_info, str):
+            extra_data['record']['stack_info'] = _replace_ansi_color_escapes(record.stack_info)
 
         # after we've added the history data, check to see if the
         # notify level is satisfied
